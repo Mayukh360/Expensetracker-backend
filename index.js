@@ -38,91 +38,73 @@ app.use((req, res, next) => {
 // app.put("/addData/:id", expensecomtroller.updateProduct);
 // app.delete("/getData/:id", expensecomtroller.deleteProduct);
 
-// *** For SignUp ***
-app.post("/signup", (req, res) => {
-  console.log("SIGN", req.body);
-  const { name, email, password } = req.body;
 
-  // Check if the email already exists in the database
-  User.findOne({ where: { email } })
-    .then((existingUser) => {
+// *** For SignUp ***
+app.post("/signup", async (req, res) => {
+    console.log("SIGN", req.body);
+    const { name, email, password } = req.body;
+  
+    try {
+      // Check if the email already exists in the database
+      const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
         return res.status(400).json({ error: "Email already exists" });
       }
-
+  
       // Hash the password
-      bcrypt
-        .hash(password, 10)
-        .then((hashedPassword) => {
-          // Create a new user with the hashed password
-          User.create({ name, email, password: hashedPassword })
-            .then((newUser) => {
-              // Generate a JWT token for the new user
-              const token = jwt.sign(
-                { userId: newUser.id, name: newUser.name },
-                "your-secret-key",
-                { expiresIn: "1h" }
-              );
-
-              res.json({ token, userId: newUser.id });
-            })
-            .catch((error) => {
-              console.error(error);
-              res.status(500).json({ error: "Failed to create user" });
-            });
-        })
-        .catch((error) => {
-          console.error(error);
-          res.status(500).json({ error: "Internal server error" });
-        });
-    })
-    .catch((error) => {
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+      // Create a new user with the hashed password
+      const newUser = await User.create({ name, email, password: hashedPassword });
+  
+      // Generate a JWT token for the new user
+      const token = jwt.sign(
+        { userId: newUser.id, name: newUser.name },
+        "your-secret-key",
+        { expiresIn: "1h" }
+      );
+  
+      res.json({ token, userId: newUser.id });
+    } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Internal server error" });
-    });
-});
-
-// *** Login ***
-app.post("/login", (req, res) => {
-  const { email, password } = req.body;
-
-  // Find the user in the database (using your Sequelize model)
-  User.findOne({ where: { email } })
-    .then((user) => {
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+  
+  // *** Login ***
+  app.post("/login", async (req, res) => {
+    const { email, password } = req.body;
+  
+    try {
+      // Find the user in the database (using  Sequelize model)
+      const user = await User.findOne({ where: { email } });
       if (!user) {
         return res.status(401).json({ error: "Invalid email" });
       }
-
+  
       // Compare the provided password with the hashed password
-      bcrypt
-        .compare(password, user.password)
-        .then((result) => {
-          if (!result) {
-            return res.status(401).json({ error: "Invalid password" });
-          }
-
-          // Generate a JWT token
-          const token = jwt.sign(
-            { userId: user.id, name: user.name },
-            "your-secret-key",
-            {
-              expiresIn: "1h", // Token expiration time
-            }
-          );
-
-          // Return the token and userId in the response
-          res.json({ token, userId: user.id });
-        })
-        .catch((error) => {
-          console.error(error);
-          res.status(500).json({ error: "Internal server error" });
-        });
-    })
-    .catch((error) => {
+      const result = await bcrypt.compare(password, user.password);
+      if (!result) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
+  
+      // Generate a JWT token
+      const token = jwt.sign(
+        { userId: user.id, name: user.name },
+        "your-secret-key",
+        {
+          expiresIn: "1h", // Token expiration time
+        }
+      );
+  
+      // Return the token and userId in the response
+      res.json({ token, userId: user.id });
+    } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Internal server error" });
-    });
-});
+    }
+  });
+  
 
 User.hasMany(Product);
 Product.belongsTo(User);
