@@ -2,7 +2,7 @@ const Express = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sequelize = require("./database/database");
-// const expensecomtroller = require("./controller/expensecontroller");
+const expensecomtroller = require("./controller/expensecontroller");
 const cors = require("cors");
 const Product = require("./models/product");
 const User = require("./models/user");
@@ -16,7 +16,7 @@ app.use((req, res, next) => {
   const token = req.headers.authorization;
   console.log(token);
   if (token) {
-    const decodedToken = jwt.verify(token, "your-secret-key");
+    const decodedToken = jwt.verify(token, "abcdxyztrsdgpjslyytfdcbf");
     const userId = decodedToken.userId;
     console.log("USERID", userId);
     User.findByPk(userId)
@@ -33,10 +33,10 @@ app.use((req, res, next) => {
   }
 });
 
-// app.get("/getData", expensecomtroller.getAllProducts);
-// app.post("/getData", expensecomtroller.createProduct);
-// app.put("/addData/:id", expensecomtroller.updateProduct);
-// app.delete("/getData/:id", expensecomtroller.deleteProduct);
+app.get("/getData", expensecomtroller.getAllProducts);
+app.post("/getData", expensecomtroller.createProduct);
+app.put("/addData/:id", expensecomtroller.updateProduct);
+app.delete("/getData/:id", expensecomtroller.deleteProduct);
 
 
 // *** For SignUp ***
@@ -60,8 +60,8 @@ app.post("/signup", async (req, res) => {
       // Generate a JWT token for the new user
       const token = jwt.sign(
         { userId: newUser.id, name: newUser.name },
-        "your-secret-key",
-        { expiresIn: "1h" }
+        "abcdxyztrsdgpjslyytfdcbf"
+       
       );
   
       res.json({ token, userId: newUser.id });
@@ -91,10 +91,8 @@ app.post("/signup", async (req, res) => {
       // Generate a JWT token
       const token = jwt.sign(
         { userId: user.id, name: user.name },
-        "your-secret-key",
-        {
-          expiresIn: "1h", // Token expiration time
-        }
+        "abcdxyztrsdgpjslyytfdcbf"
+       
       );
   
       // Return the token and userId in the response
