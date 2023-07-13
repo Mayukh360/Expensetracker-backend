@@ -8,6 +8,7 @@ const Product = require("./models/product");
 const User = require("./models/user");
 const Order=require("./models/order")
 const Razorpay = require("razorpay");
+const paymentController = require("./controller/paymentcontroller");
 
 const app = express();
 app.use(cors());
@@ -34,41 +35,13 @@ app.use((req, res, next) => {
   }
 });
 
-const razorpay = new Razorpay({
-  key_id: "rzp_test_rjwCZBuYXmqIln",
-  key_secret: "WXUI0e1zL8uzm6f5fjzhMt41",
-});
-
 app.post("/razorpay/transaction", async (req, res) => {
   const token = req.headers.authorization;
   const decodedToken = jwt.verify(token, "abcdxyztrsdgpjslyytfdcbf");
   const userId = decodedToken.userId;
 
   try {
-    // Get the user from the database
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    // Create a new Razorpay order
-    const razorpayOrder = await razorpay.orders.create({
-      amount: 1000, // Example amount
-      currency: "INR", // Example currency
-      // Add other necessary parameters for the transaction
-    });
-
-    const orderId = razorpayOrder.id;
-
-    // Save the orderId and keyId to the database or perform necessary actions
-    const order = await Order.create({
-      paymentid: "", // Initially empty, will be updated later
-      orderid: orderId,
-      status: "pending",
-      userId: user.id, // Associate the order with the user
-    });
-
-    const keyId = razorpayOrder.key_id;
+    const { keyId, orderId } = await paymentController.createRazorpayOrder(userId);
 
     res.json({ keyId, orderId });
   } catch (error) {
@@ -82,30 +55,15 @@ app.put("/razorpay/transaction/:orderId", async (req, res) => {
   const { paymentId } = req.body;
 
   try {
-    // Find the order by orderId
-    const order = await Order.findOne({ where: { orderid: orderId } });
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
-    }
+    const message = await paymentController.updateTransaction(orderId, paymentId);
 
-    // Update the order with paymentId and status as "completed"
-    order.paymentid = paymentId;
-    order.status = "completed";
-    await order.save();
-
-     // Update the user's isPremium field to true
-     const user = await User.findByPk(order.userId);
-     if (user) {
-       user.isPremium = true;
-       await user.save();
-     }
-
-    res.json({ message: "Transaction updated successfully" });
+    res.json({ message });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 app.get("/getData", expensecomtroller.getAllProducts);
 app.post("/getData", expensecomtroller.createProduct);
@@ -141,7 +99,7 @@ app.post("/signup", async (req, res) => {
       "abcdxyztrsdgpjslyytfdcbf"
     );
 
-    res.json({ token, userId: newUser.id });
+    res.json({ token, userId: newUser.id , isPremium: newUser.isPremium});
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to create user" });
@@ -172,7 +130,7 @@ app.post("/login", async (req, res) => {
     );
 
     // Return the token and userId in the response
-    res.json({ token, userId: user.id });
+    res.json({ token, userId: user.id ,  isPremium: user.isPremium});
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
