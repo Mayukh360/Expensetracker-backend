@@ -93,6 +93,13 @@ app.put("/razorpay/transaction/:orderId", async (req, res) => {
     order.status = "completed";
     await order.save();
 
+     // Update the user's isPremium field to true
+     const user = await User.findByPk(order.userId);
+     if (user) {
+       user.isPremium = true;
+       await user.save();
+     }
+
     res.json({ message: "Transaction updated successfully" });
   } catch (error) {
     console.error(error);
