@@ -12,8 +12,12 @@ const User= sequelize.define('user',{
         unique: true,
       },
       password: {
-        type: Sequelize.STRING, // or DataTypes.TEXT if you expect longer passwords
+        type: Sequelize.STRING, 
         allowNull: false,
+      },
+      isPremium: {
+        type: Sequelize.BOOLEAN, // Set the field type explicitly as BOOLEAN
+        defaultValue: false, // Set the default value as false
       },
 })
 
