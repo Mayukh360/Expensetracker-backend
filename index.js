@@ -64,6 +64,42 @@ app.put("/razorpay/transaction/:orderId", async (req, res) => {
   }
 });
 
+app.get("/showleaderboard", async (req, res) => {
+  try {
+    // Fetch all users from the database
+    const users = await User.findAll();
+
+    // Initialize an array to store user expenses
+    const userExpenses = [];
+
+    // Iterate over each user and calculate their total expenses
+    for (const user of users) {
+      // Find all products associated with the user
+      const products = await Product.findAll({ where: { userId: user.id } });
+
+      // Calculate the total expenses for the user
+      const totalExpenses = products.reduce(
+        (sum, product) => sum + product.amount,
+        0
+      );
+
+      // Push user name and total expenses to the userExpenses array
+      userExpenses.push({ name: user.name, totalExpenses });
+    }
+
+    // Sort the userExpenses array in descending order of total expenses
+    const leaderboard = userExpenses.sort(
+      (a, b) => b.totalExpenses - a.totalExpenses
+    );
+
+    res.json({ leaderboard });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
 
 app.get("/getData", expensecomtroller.getAllProducts);
 app.post("/getData", expensecomtroller.createProduct);
