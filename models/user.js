@@ -19,6 +19,10 @@ const User= sequelize.define('user',{
         type: Sequelize.BOOLEAN, // Set the field type explicitly as BOOLEAN
         defaultValue: false, // Set the default value as false
       },
+      totalexpense: {
+        type: Sequelize.DOUBLE,
+        
+      },
 })
 
 module.exports= User;

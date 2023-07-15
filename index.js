@@ -7,8 +7,9 @@ const cors = require("cors");
 const Product = require("./models/product");
 const User = require("./models/user");
 const Order = require("./models/order");
-const Razorpay = require("razorpay");
+
 const paymentController = require("./controller/paymentcontroller");
+const authController = require("./controller/authcontroller"); 
 
 const app = express();
 app.use(cors());
@@ -109,119 +110,110 @@ app.put("/razorpay/transaction/:orderId", async (req, res) => {
 //   }
 // });
 
+// app.get("/showleaderboard", async (req, res) => {
+//   try {
+//     // Fetch required attributes (name and id) from the User table
+//     const users = await User.findAll({
+//       attributes: ["name", "id"],
+//     });
+
+//     // Initialize an array to store user expenses
+//     const userExpenses = [];
+
+//     // Iterate over each user and calculate their total expenses
+//     for (const user of users) {
+//       // Find all products associated with the user and only retrieve the amount attribute
+//       const products = await Product.findAll({
+//         where: { userId: user.id },
+//         attributes: [
+//           "userId",
+//           [sequelize.fn("sum", sequelize.col("amount")), "totalExpenses"],
+//         ],
+//         group: ["userId"],
+//       });
+
+//       // Get the total expenses for the user (if any)
+//       const totalExpenses =
+//         products.length > 0 ? products[0].dataValues.totalExpenses : 0;
+
+//       // Push user name and total expenses to the userExpenses array
+//       userExpenses.push({ name: user.name, totalExpenses });
+//     }
+
+//     // Sort the userExpenses array in descending order of total expenses
+//     const leaderboard = userExpenses.sort(
+//       (a, b) => b.totalExpenses - a.totalExpenses
+//     );
+
+//     res.json({ leaderboard });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+// app.get("/showleaderboard", async (req, res) => {
+//   try {
+//     // Fetch required attributes (name and id) from the User table
+//     const users = await User.findAll({
+//       attributes: [
+//         "name",
+//         "id",
+//         // [sequelize.fn("sum", sequelize.col("products.amount")), "totalExpenses"],
+//         [
+//           sequelize.fn(
+//             "COALESCE",
+//             sequelize.fn("sum", sequelize.col("products.amount")),
+//             0
+//           ),
+//           "totalExpenses",
+//         ],
+//       ],
+//       include: [
+//         {
+//           model: Product,
+//           attributes: [],
+//         },
+//       ],
+//       group: ["id"], // Use the name of the model's column here
+//     });
+
+//     // Sort the user array in descending order of total expenses
+//     const leaderboard = users.sort(
+//       (a, b) => b.dataValues.totalExpenses - a.dataValues.totalExpenses
+//     );
+
+//     res.json({ leaderboard });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 app.get("/showleaderboard", async (req, res) => {
   try {
-    // Fetch required attributes (name and id) from the User table
     const users = await User.findAll({
-      attributes: ["name", "id"],
+      attributes: ["name", "totalexpense"], // Include only name and totalExpenses attributes
     });
 
-    // Initialize an array to store user expenses
-    const userExpenses = [];
-
-    // Iterate over each user and calculate their total expenses
-    for (const user of users) {
-      // Find all products associated with the user and only retrieve the amount attribute
-      const products = await Product.findAll({
-        where: { userId: user.id },
-        attributes: [
-          "userId",
-          [sequelize.fn("sum", sequelize.col("amount")), "totalExpenses"],
-        ],
-        group: ["userId"],
-      });
-
-      // Get the total expenses for the user (if any)
-      const totalExpenses =
-        products.length > 0 ? products[0].dataValues.totalExpenses : 0;
-
-      // Push user name and total expenses to the userExpenses array
-      userExpenses.push({ name: user.name, totalExpenses });
-    }
-
-    // Sort the userExpenses array in descending order of total expenses
-    const leaderboard = userExpenses.sort(
-      (a, b) => b.totalExpenses - a.totalExpenses
-    );
-
-    res.json({ leaderboard });
+    res.json({ leaderboard: users });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 app.get("/getData", expensecomtroller.getAllProducts);
 app.post("/getData", expensecomtroller.createProduct);
 app.put("/addData/:id", expensecomtroller.updateProduct);
 app.delete("/getData/:id", expensecomtroller.deleteProduct);
+app.post("/signup", authController.signup);
+app.post("/login", authController.login);
 
-// *** For SignUp ***
-app.post("/signup", async (req, res) => {
-  console.log("SIGN", req.body);
-  const { name, email, password } = req.body;
 
-  try {
-    // Check if the email already exists in the database
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ error: "Email already exists" });
-    }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new user with the hashed password
-    const newUser = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      isPremium: false,
-    });
 
-    // Generate a JWT token for the new user
-    const token = jwt.sign(
-      { userId: newUser.id, name: newUser.name },
-      "abcdxyztrsdgpjslyytfdcbf"
-    );
-
-    res.json({ token, userId: newUser.id, isPremium: newUser.isPremium });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to create user" });
-  }
-});
-
-// *** Login ***
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    // Find the user in the database (using  Sequelize model)
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res.status(401).json({ error: "Invalid email" });
-    }
-
-    // Compare the provided password with the hashed password
-    const result = await bcrypt.compare(password, user.password);
-    if (!result) {
-      return res.status(401).json({ error: "Invalid password" });
-    }
-
-    // Generate a JWT token
-    const token = jwt.sign(
-      { userId: user.id, name: user.name },
-      "abcdxyztrsdgpjslyytfdcbf"
-    );
-
-    // Return the token and userId in the response
-    res.json({ token, userId: user.id, isPremium: user.isPremium });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
 
 User.hasMany(Product);
 Product.belongsTo(User);
