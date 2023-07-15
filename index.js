@@ -1,6 +1,6 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+
 const sequelize = require("./database/database");
 const expensecomtroller = require("./controller/expensecontroller");
 const cors = require("cors");
