@@ -1,5 +1,7 @@
+
 const Product = require("../models/product");
 const User=require("../models/user")
+const sequelize=require('../database/database')
 
 const getAllProducts = async (req, res) => {
   try {
@@ -12,70 +14,106 @@ const getAllProducts = async (req, res) => {
 };
 
 const createProduct = async (req, res) => {
-    console.log(req.body)
+  const t = await sequelize.transaction(); // Begin transaction
+  console.log(req.body);
   try {
-    const { description, amount, category,totalexpense } = req.body;
-    const product = await req.user.createProduct({
-      description,
-      amount,
-      category
-    });
+    const { description, amount, category, totalexpense } = req.body;
+    const product = await req.user.createProduct(
+      {
+        description,
+        amount,
+        category
+      },
+      { transaction: t } // Pass the transaction object to createProduct
+    );
 
-    const user = await User.findByPk(req.user.id);
-    user.totalexpense = (user.totalexpense || 0) + parseFloat(amount); // Add the expense amount to the total or initialize to 0 if null
-    await user.save(); // Save the updated user
+    // Fetch the user associated with the product
+    const user = await User.findByPk(req.user.id, { transaction: t });
+
+    // Calculate the new totalexpense
+    user.totalexpense = (user.totalexpense || 0) + parseFloat(amount);
+
+    await user.save({ transaction: t }); // Save the updated user inside the transaction
+
+    await t.commit(); // Commit the transaction
 
     res.json(product);
   } catch (error) {
     console.log(error);
+    await t.rollback(); // Rollback the transaction in case of an error
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
 const updateProduct = async (req, res) => {
-  console.log(req.params)
-  console.log(req.body)
+  const t = await sequelize.transaction(); // Begin transaction
+  console.log(req.params);
+  console.log(req.body);
   try {
     const { id } = req.params;
-    const {  description, amount, category,totalexpense } = req.body;
-    const product = await Product.findByPk(id);
+    const { description, amount, category, totalexpense } = req.body;
+    const product = await Product.findByPk(id, { transaction: t });
     if (!product) {
       res.status(404).json({ error: 'Product not found' });
+      await t.rollback(); // Rollback the transaction if the product is not found
       return;
     }
     const oldAmount = product.amount; // getting old amount
     product.description = description;
     product.amount = amount;
     product.category = category;
-    await product.save();
+    await product.save({ transaction: t });
 
-     // Fetch the user associated with the product
-     const user = await User.findByPk(product.userId);
+    // Fetch the user associated with the product
+    const user = await User.findByPk(product.userId, { transaction: t });
 
-     // Calculate the new totalexpense
-     user.totalexpense = (user.totalexpense || 0) - oldAmount + parseFloat(amount);
- 
-     await user.save(); // Save the updated user
+    // Calculate the new totalexpense
+    user.totalexpense = (user.totalexpense || 0) - oldAmount + parseFloat(amount);
+
+    await user.save({ transaction: t }); // Save the updated user inside the transaction
+
+    await t.commit(); // Commit the transaction
 
     res.json(product);
   } catch (error) {
     console.log(error);
+    await t.rollback(); // Rollback the transaction in case of an error
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
+
 const deleteProduct = async (req, res) => {
+  const t = await sequelize.transaction(); // Begin transaction
   console.log(req.body);
   try {
     const { id } = req.params;
-    const product = await Product.findByPk(id);
+    const product = await Product.findByPk(id, { transaction: t });
     if (!product) {
       res.status(404).json({ error: "Product not found" });
+      await t.rollback(); // Rollback the transaction if the product is not found
       return;
     }
-    await product.destroy();
+
+    const amount = product.amount;
+
+    // Fetch the user associated with the product
+    const user = await User.findByPk(product.userId, { transaction: t });
+
+    // Update the totalexpense in User table
+    user.totalexpense = (user.totalexpense || 0) - parseFloat(amount);
+
+    await user.save({ transaction: t }); // Save the updated user inside the transaction
+
+    await product.destroy({ transaction: t }); // Delete the product inside the transaction
+
+    await t.commit(); // Commit the transaction
+
     res.json({ message: "Product deleted successfully" });
   } catch (error) {
     console.log(error);
+    await t.rollback(); // Rollback the transaction in case of an error
     res.status(500).json({ error: "Internal server error" });
   }
 };
