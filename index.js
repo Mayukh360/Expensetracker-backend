@@ -6,7 +6,7 @@ const expensecomtroller = require("./controller/expensecontroller");
 const cors = require("cors");
 const Product = require("./models/product");
 const User = require("./models/user");
-const Order=require("./models/order")
+const Order = require("./models/order");
 const Razorpay = require("razorpay");
 const paymentController = require("./controller/paymentcontroller");
 
@@ -41,7 +41,9 @@ app.post("/razorpay/transaction", async (req, res) => {
   const userId = decodedToken.userId;
 
   try {
-    const { keyId, orderId } = await paymentController.createRazorpayOrder(userId);
+    const { keyId, orderId } = await paymentController.createRazorpayOrder(
+      userId
+    );
 
     res.json({ keyId, orderId });
   } catch (error) {
@@ -55,7 +57,10 @@ app.put("/razorpay/transaction/:orderId", async (req, res) => {
   const { paymentId } = req.body;
 
   try {
-    const message = await paymentController.updateTransaction(orderId, paymentId);
+    const message = await paymentController.updateTransaction(
+      orderId,
+      paymentId
+    );
 
     res.json({ message });
   } catch (error) {
@@ -64,24 +69,71 @@ app.put("/razorpay/transaction/:orderId", async (req, res) => {
   }
 });
 
+// app.get("/showleaderboard", async (req, res) => {
+//   try {
+//     // Fetch required attributes (name and id) from the User table
+//     const users = await User.findAll({
+//       attributes: ["name", "id"],
+//     });
+
+//     // Initialize an array to store user expenses
+//     const userExpenses = [];
+
+//     // Iterate over each user and calculate their total expenses
+//     for (const user of users) {
+//       // Find all products associated with the user and only retrieve the amount attribute
+//       const products = await Product.findAll({
+
+//         attributes: ["userId",sequelize.fn('sum', sequelize.col('product.amount')),'totalExpenses'],
+//       });
+
+//       // Calculate the total expenses for the user
+//       // const totalExpenses = products.reduce(
+//       //   (sum, product) => sum + product.amount,
+//       //   0
+//       // );
+
+//       // Push user name and total expenses to the userExpenses array
+//       userExpenses.push({ name: user.name, totalExpenses });
+//     }
+
+//     // Sort the userExpenses array in descending order of total expenses
+//     const leaderboard = userExpenses.sort(
+//       (a, b) => b.totalExpenses - a.totalExpenses
+//     );
+
+//     res.json({ leaderboard });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
 app.get("/showleaderboard", async (req, res) => {
   try {
-    // Fetch all users from the database
-    const users = await User.findAll();
+    // Fetch required attributes (name and id) from the User table
+    const users = await User.findAll({
+      attributes: ["name", "id"],
+    });
 
     // Initialize an array to store user expenses
     const userExpenses = [];
 
     // Iterate over each user and calculate their total expenses
     for (const user of users) {
-      // Find all products associated with the user
-      const products = await Product.findAll({ where: { userId: user.id } });
+      // Find all products associated with the user and only retrieve the amount attribute
+      const products = await Product.findAll({
+        where: { userId: user.id },
+        attributes: [
+          "userId",
+          [sequelize.fn("sum", sequelize.col("amount")), "totalExpenses"],
+        ],
+        group: ["userId"],
+      });
 
-      // Calculate the total expenses for the user
-      const totalExpenses = products.reduce(
-        (sum, product) => sum + product.amount,
-        0
-      );
+      // Get the total expenses for the user (if any)
+      const totalExpenses =
+        products.length > 0 ? products[0].dataValues.totalExpenses : 0;
 
       // Push user name and total expenses to the userExpenses array
       userExpenses.push({ name: user.name, totalExpenses });
@@ -98,8 +150,6 @@ app.get("/showleaderboard", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-
 
 app.get("/getData", expensecomtroller.getAllProducts);
 app.post("/getData", expensecomtroller.createProduct);
@@ -126,7 +176,7 @@ app.post("/signup", async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      isPremium: false, 
+      isPremium: false,
     });
 
     // Generate a JWT token for the new user
@@ -135,7 +185,7 @@ app.post("/signup", async (req, res) => {
       "abcdxyztrsdgpjslyytfdcbf"
     );
 
-    res.json({ token, userId: newUser.id , isPremium: newUser.isPremium});
+    res.json({ token, userId: newUser.id, isPremium: newUser.isPremium });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to create user" });
@@ -166,7 +216,7 @@ app.post("/login", async (req, res) => {
     );
 
     // Return the token and userId in the response
-    res.json({ token, userId: user.id ,  isPremium: user.isPremium});
+    res.json({ token, userId: user.id, isPremium: user.isPremium });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
