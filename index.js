@@ -7,9 +7,18 @@ const cors = require("cors");
 const Product = require("./models/product");
 const User = require("./models/user");
 const Order = require("./models/order");
-
 const paymentController = require("./controller/paymentcontroller");
-const authController = require("./controller/authcontroller"); 
+const authController = require("./controller/authcontroller");
+require("dotenv").config();
+const Sib = require("sib-api-v3-sdk");
+
+// Configure Sendinblue API client with your API key
+const client = Sib.ApiClient.instance;
+const apiKey = client.authentications['api-key'];
+apiKey.apiKey = process.env.API_KEY;
+
+const tranEmailApi = new Sib.TransactionalEmailsApi();
+const sender = { email: "mayukhchatterjee722@gmail.com" };
 
 const app = express();
 app.use(cors());
@@ -35,6 +44,13 @@ app.use((req, res, next) => {
     next();
   }
 });
+
+app.get("/getData", expensecomtroller.getAllProducts);
+app.post("/getData", expensecomtroller.createProduct);
+app.put("/addData/:id", expensecomtroller.updateProduct);
+app.delete("/getData/:id", expensecomtroller.deleteProduct);
+app.post("/signup", authController.signup);
+app.post("/login", authController.login);
 
 app.post("/razorpay/transaction", async (req, res) => {
   const token = req.headers.authorization;
@@ -70,125 +86,6 @@ app.put("/razorpay/transaction/:orderId", async (req, res) => {
   }
 });
 
-// app.get("/showleaderboard", async (req, res) => {
-//   try {
-//     // Fetch required attributes (name and id) from the User table
-//     const users = await User.findAll({
-//       attributes: ["name", "id"],
-//     });
-
-//     // Initialize an array to store user expenses
-//     const userExpenses = [];
-
-//     // Iterate over each user and calculate their total expenses
-//     for (const user of users) {
-//       // Find all products associated with the user and only retrieve the amount attribute
-//       const products = await Product.findAll({
-
-//         attributes: ["userId",sequelize.fn('sum', sequelize.col('product.amount')),'totalExpenses'],
-//       });
-
-//       // Calculate the total expenses for the user
-//       // const totalExpenses = products.reduce(
-//       //   (sum, product) => sum + product.amount,
-//       //   0
-//       // );
-
-//       // Push user name and total expenses to the userExpenses array
-//       userExpenses.push({ name: user.name, totalExpenses });
-//     }
-
-//     // Sort the userExpenses array in descending order of total expenses
-//     const leaderboard = userExpenses.sort(
-//       (a, b) => b.totalExpenses - a.totalExpenses
-//     );
-
-//     res.json({ leaderboard });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
-
-// app.get("/showleaderboard", async (req, res) => {
-//   try {
-//     // Fetch required attributes (name and id) from the User table
-//     const users = await User.findAll({
-//       attributes: ["name", "id"],
-//     });
-
-//     // Initialize an array to store user expenses
-//     const userExpenses = [];
-
-//     // Iterate over each user and calculate their total expenses
-//     for (const user of users) {
-//       // Find all products associated with the user and only retrieve the amount attribute
-//       const products = await Product.findAll({
-//         where: { userId: user.id },
-//         attributes: [
-//           "userId",
-//           [sequelize.fn("sum", sequelize.col("amount")), "totalExpenses"],
-//         ],
-//         group: ["userId"],
-//       });
-
-//       // Get the total expenses for the user (if any)
-//       const totalExpenses =
-//         products.length > 0 ? products[0].dataValues.totalExpenses : 0;
-
-//       // Push user name and total expenses to the userExpenses array
-//       userExpenses.push({ name: user.name, totalExpenses });
-//     }
-
-//     // Sort the userExpenses array in descending order of total expenses
-//     const leaderboard = userExpenses.sort(
-//       (a, b) => b.totalExpenses - a.totalExpenses
-//     );
-
-//     res.json({ leaderboard });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
-
-// app.get("/showleaderboard", async (req, res) => {
-//   try {
-//     // Fetch required attributes (name and id) from the User table
-//     const users = await User.findAll({
-//       attributes: [
-//         "name",
-//         "id",
-//         // [sequelize.fn("sum", sequelize.col("products.amount")), "totalExpenses"],
-//         [
-//           sequelize.fn(
-//             "COALESCE",
-//             sequelize.fn("sum", sequelize.col("products.amount")),
-//             0
-//           ),
-//           "totalExpenses",
-//         ],
-//       ],
-//       include: [
-//         {
-//           model: Product,
-//           attributes: [],
-//         },
-//       ],
-//       group: ["id"], // Use the name of the model's column here
-//     });
-
-//     // Sort the user array in descending order of total expenses
-//     const leaderboard = users.sort(
-//       (a, b) => b.dataValues.totalExpenses - a.dataValues.totalExpenses
-//     );
-
-//     res.json({ leaderboard });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
 app.get("/showleaderboard", async (req, res) => {
   try {
     const users = await User.findAll({
@@ -203,16 +100,27 @@ app.get("/showleaderboard", async (req, res) => {
 });
 
 
-app.get("/getData", expensecomtroller.getAllProducts);
-app.post("/getData", expensecomtroller.createProduct);
-app.put("/addData/:id", expensecomtroller.updateProduct);
-app.delete("/getData/:id", expensecomtroller.deleteProduct);
-app.post("/signup", authController.signup);
-app.post("/login", authController.login);
 
+app.post("/forgotpassword", async (req, res) => {
+  try {
+    const { email } = req.body;
+    console.log(email);
 
+    // Send the dummy email to the specified email address
+    const recievers =[ { email: email }];
 
-
+    const response = await tranEmailApi.sendTransacEmail({
+      sender,
+      to: recievers,
+      subject: "Forgot Password",
+      textContent: "This is dummy email for reset password",
+    });
+    console.log(response);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 
 User.hasMany(Product);
