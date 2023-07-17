@@ -21,7 +21,7 @@ const signup = async (req, res) => {
       email,
       password: hashedPassword,
       isPremium: false,
-      totalexpense:null,
+      
     });
 
     // Generate a JWT token for the new user

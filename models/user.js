@@ -21,7 +21,7 @@ const User= sequelize.define('user',{
       },
       totalexpense: {
         type: Sequelize.DOUBLE,
-        
+        defaultValue:0
       },
 })
 

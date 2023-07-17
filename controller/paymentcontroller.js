@@ -1,4 +1,5 @@
 const Razorpay = require("razorpay");
+const jwt = require("jsonwebtoken");
 const Order = require("../models/order");
 const User = require("../models/user");
 
@@ -7,12 +8,16 @@ const razorpay = new Razorpay({
   key_secret: "WXUI0e1zL8uzm6f5fjzhMt41",
 });
 
-const createRazorpayOrder = async (userId) => {
+const createRazorpayOrder = async (req, res) => {
+  const token = req.headers.authorization;
   try {
+    const decodedToken = jwt.verify(token, "abcdxyztrsdgpjslyytfdcbf");
+    const userId = decodedToken.userId;
+
     // Get the user from the database
     const user = await User.findByPk(userId);
     if (!user) {
-      throw new Error("User not found");
+      return res.status(404).json({ error: "User not found" });
     }
 
     // Create a new Razorpay order
@@ -33,19 +38,22 @@ const createRazorpayOrder = async (userId) => {
 
     const keyId = razorpayOrder.key_id;
 
-    return { keyId, orderId };
+    res.json({ keyId, orderId });
   } catch (error) {
     console.error(error);
-    throw new Error("Failed to create Razorpay order");
+    res.status(500).json({ error: "Failed to create Razorpay order" });
   }
 };
 
-const updateTransaction = async (orderId, paymentId) => {
+const updateTransaction = async (req, res) => {
+  const { orderId } = req.params;
+  const { paymentId } = req.body;
+
   try {
     // Finding the order by orderId
     const order = await Order.findOne({ where: { orderid: orderId } });
     if (!order) {
-      throw new Error("Order not found");
+      return res.status(404).json({ error: "Order not found" });
     }
 
     // Updating the order with paymentId and status as "completed"
@@ -60,10 +68,10 @@ const updateTransaction = async (orderId, paymentId) => {
       await user.save();
     }
 
-    return "Transaction updated successfully";
+    res.json({ message: "Transaction updated successfully" });
   } catch (error) {
     console.error(error);
-    throw new Error("Failed to update transaction");
+    res.status(500).json({ error: "Failed to update transaction" });
   }
 };
 
