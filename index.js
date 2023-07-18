@@ -7,11 +7,12 @@ const Product = require("./models/product");
 const User = require("./models/user");
 const Order = require("./models/order");
 const Request = require("./models/forgotpassword");
+const Download=require('./models/downloadexpense')
 const paymentController = require("./controller/paymentcontroller");
 const authController = require("./controller/authcontroller");
-require("dotenv").config();
 const leaderboardController = require("./controller/leaderboardcontroller"); // Import leaderboardController
 const requestHandler = require("./controller/requestcontroller");
+require("dotenv").config();
 const AWS= require('aws-sdk')
 
 const app = express();
@@ -60,7 +61,7 @@ const IAM_USER_SECRET=process.env.IAM_USER_SECRET;
 let s3bucket= new AWS.S3({
   accessKeyId: IAM_USER_KEY,
   secretAccessKey:IAM_USER_SECRET,
-  // Bucket: BUCKET_NAME
+  // Bucket: BUCKET_NAME 
 })
 
 
@@ -93,9 +94,25 @@ try{
   const stringifiedexpense=JSON.stringify(expenses);
   const filename= `Expenses${userId}/${new Date()}.txt`;
   const fileUrl= await uploadTos3(stringifiedexpense, filename)
+
+  await Download.create({
+    fileUrl: fileUrl,
+    userId: userId,
+  });
+
   res.status(200).json({fileUrl, success:true})
 }
 catch(err){console.log(err)}
+})
+
+app.get('/alldownload', async(req,res)=>{
+  try{
+    const userId= req.user.id;
+    const fileUrls= await Download.findAll({where:{userId}});
+
+    res.status(200).json({fileUrls, success:true})
+  }
+  catch(err){console.log(err);}
 })
 
  
@@ -108,6 +125,9 @@ Order.belongsTo(User);
 
 User.hasMany(Request);
 Request.belongsTo(User);
+
+User.hasMany(Download);
+Download.belongsTo(User);
 
 sequelize
   .sync()
