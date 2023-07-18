@@ -1,6 +1,5 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-
 const sequelize = require("./database/database");
 const expensecomtroller = require("./controller/expensecontroller");
 const cors = require("cors");
@@ -13,6 +12,7 @@ const authController = require("./controller/authcontroller");
 require("dotenv").config();
 const leaderboardController = require("./controller/leaderboardcontroller"); // Import leaderboardController
 const requestHandler = require("./controller/requestcontroller");
+const AWS= require('aws-sdk')
 
 const app = express();
 app.use(cors());
@@ -48,22 +48,57 @@ app.post("/login", authController.login);
 app.get("/showleaderboard", leaderboardController.showLeaderboard); 
 app.post("/razorpay/transaction", paymentController.createRazorpayOrder);
 app.put("/razorpay/transaction/:orderId", paymentController.updateTransaction);
-// Forgot Password Route
 app.post("/forgotpassword", requestHandler.handleForgotPassword);
+app.get("/password/resetpassword/:requestId/:userId",requestHandler.handleResetPasswordForm);
+app.get("/password/updatepassword/:userId/:requestId",requestHandler.handleUpdatePassword);
 
-// Reset Password Form Route
-app.get(
-  "/password/resetpassword/:requestId/:userId",
-  requestHandler.handleResetPasswordForm
-);
+function uploadTos3(data,filename){
+const BUCKET_NAME='expensetrackingapp11';
+const IAM_USER_KEY='AKIA3HM3ZRX6GTI4WOVS';
+const IAM_USER_SECRET='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';
 
-// Update Password Route
-app.get(
-  "/password/updatepassword/:userId/:requestId",
-  requestHandler.handleUpdatePassword
-);
+let s3bucket= new AWS.S3({
+  accessKeyId: IAM_USER_KEY,
+  secretAccessKey:IAM_USER_SECRET,
+  // Bucket: BUCKET_NAME
+})
 
 
+  var params={
+    Bucket: BUCKET_NAME,
+    Key: filename,
+    Body: data,
+    ACL:'public-read'
+  }
+  return new Promise((resolve,reject)=>{
+    s3bucket.upload(params, (err,s3response)=>{
+      if(err){
+        console.log("Something went wrong", err);
+      }
+      else{
+        console.log("Success", s3response);
+        resolve(s3response.Location);
+      }
+    })
+  
+  })
+
+
+}
+
+app.get("/download", async(req,res)=>{
+try{
+  const userId= req.user.id;
+  const expenses= await Product.findAll({where:{userId}})
+  const stringifiedexpense=JSON.stringify(expenses);
+  const filename= `Expenses${userId}/${new Date()}.txt`;
+  const fileUrl= await uploadTos3(stringifiedexpense, filename)
+  res.status(200).json({fileUrl, success:true})
+}
+catch(err){console.log(err)}
+})
+
+ 
 
 User.hasMany(Product);
 Product.belongsTo(User);
