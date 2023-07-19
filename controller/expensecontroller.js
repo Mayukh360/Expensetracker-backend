@@ -3,10 +3,22 @@ const Product = require("../models/product");
 const User=require("../models/user")
 const sequelize=require('../database/database')
 
+const ITEMS_PER_PAGE = 5;
+
 const getAllProducts = async (req, res) => {
+  const { page, limit } = req.query;
+  const currentPage = parseInt(page) || 1;
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+  console.log("PAGE",page)
   try {
-    const products = await Product.findAll();
-    res.json(products);
+    const userId = req.user.id;
+    const { count, rows: expenses } = await Product.findAndCountAll({
+      where: { userId },
+      limit: parseInt(limit),
+      offset,
+    });
+
+    res.json({ expenses, totalItems: count });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Internal server error" });
@@ -17,7 +29,7 @@ const createProduct = async (req, res) => {
   const t = await sequelize.transaction(); // Begin transaction
   console.log(req.body);
   try {
-    const { description, amount, category, totalexpense } = req.body;
+    const { description, amount, category} = req.body;
     const product = await req.user.createProduct(
       {
         description,
