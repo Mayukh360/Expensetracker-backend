@@ -2,16 +2,17 @@ const Razorpay = require("razorpay");
 const jwt = require("jsonwebtoken");
 const Order = require("../models/order");
 const User = require("../models/user");
+require("dotenv").config();
 
 const razorpay = new Razorpay({
-  key_id: "rzp_test_rjwCZBuYXmqIln",
-  key_secret: "WXUI0e1zL8uzm6f5fjzhMt41",
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
 const createRazorpayOrder = async (req, res) => {
   const token = req.headers.authorization;
   try {
-    const decodedToken = jwt.verify(token, "abcdxyztrsdgpjslyytfdcbf");
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decodedToken.userId;
 
     // Get the user from the database

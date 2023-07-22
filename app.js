@@ -10,10 +10,12 @@ const Request = require("./models/forgotpassword");
 const Download = require("./models/downloadexpense");
 const paymentController = require("./controller/paymentcontroller");
 const authController = require("./controller/authcontroller");
-const leaderboardController = require("./controller/leaderboardcontroller"); // Import leaderboardController
+const leaderboardController = require("./controller/leaderboardcontroller");
 const requestHandler = require("./controller/requestcontroller");
-const { download, alldownload } = require("./controller/downloadcontroller"); // Use object destructuring
+const { download, alldownload } = require("./controller/downloadcontroller"); 
 require("dotenv").config();
+const helmet=require('helmet')
+const compression=require('compression')
 
 
 const app = express();
@@ -24,7 +26,7 @@ app.use((req, res, next) => {
   const token = req.headers.authorization;
   console.log(token);
   if (token) {
-    const decodedToken = jwt.verify(token, "abcdxyztrsdgpjslyytfdcbf");
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decodedToken.userId;
     console.log("USERID", userId);
     User.findByPk(userId)
@@ -40,7 +42,8 @@ app.use((req, res, next) => {
     next();
   }
 });
-
+app.use(helmet());
+app.use(compression());
 app.get("/getData", expensecomtroller.getAllProducts);
 app.post("/getData", expensecomtroller.createProduct);
 app.put("/addData/:id", expensecomtroller.updateProduct);
@@ -83,7 +86,7 @@ sequelize
   })
   .then((user) => {
     // console.log(user);
-    app.listen(3000, () => {
+    app.listen( process.env.PROT ||3000, () => {
       console.log("Server running");
     });
   })

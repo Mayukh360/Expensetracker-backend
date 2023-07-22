@@ -3,12 +3,12 @@ const Product = require("../models/product");
 const User=require("../models/user")
 const sequelize=require('../database/database')
 
-const ITEMS_PER_PAGE = 5;
+// const ITEMS_PER_PAGE = 5;
 
 const getAllProducts = async (req, res) => {
   const { page, limit } = req.query;
   const currentPage = parseInt(page) || 1;
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+  const offset = (currentPage - 1) * limit;
   console.log("PAGE",page)
   try {
     const userId = req.user.id;

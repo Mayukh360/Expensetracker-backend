@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const User = require("../models/user");
+require("dotenv").config();
 
 const signup = async (req, res) => {
   const { name, email, password } = req.body;
@@ -27,7 +28,7 @@ const signup = async (req, res) => {
     // Generate a JWT token for the new user
     const token = jwt.sign(
       { userId: newUser.id, name: newUser.name },
-      "abcdxyztrsdgpjslyytfdcbf"
+      process.env.JWT_SECRET
     );
 
     res.json({ token, userId: newUser.id, isPremium: newUser.isPremium });
@@ -56,7 +57,7 @@ const login = async (req, res) => {
     // Generate a JWT token
     const token = jwt.sign(
       { userId: user.id, name: user.name },
-      "abcdxyztrsdgpjslyytfdcbf"
+      process.env.JWT_SECRET
     );
 
     // Return the token and userId in the response
