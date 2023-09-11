@@ -4,19 +4,20 @@ const User = require("../models/user");
 require("dotenv").config();
 
 const signup = async (req, res) => {
+  // console.log(req.body)
   const { name, email, password } = req.body;
 
   try {
-    // Check if the email already exists in the database
+    // Checking if the email already exists in the database
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ error: "Email already exists" });
     }
 
-    // Hash the password
+    // Hashing the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new user with the hashed password
+    // Creating a new user with the hashed password
     const newUser = await User.create({
       name,
       email,
@@ -39,6 +40,7 @@ const signup = async (req, res) => {
 };
 
 const login = async (req, res) => {
+  // console.log(req.body)
   const { email, password } = req.body;
 
   try {

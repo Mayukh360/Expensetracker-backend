@@ -16,8 +16,8 @@ const User= sequelize.define('user',{
         allowNull: false,
       },
       isPremium: {
-        type: Sequelize.BOOLEAN, // Set the field type explicitly as BOOLEAN
-        defaultValue: false, // Set the default value as false
+        type: Sequelize.BOOLEAN, 
+        defaultValue: false,
       },
       totalexpense: {
         type: Sequelize.DOUBLE,

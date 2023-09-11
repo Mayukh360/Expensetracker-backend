@@ -42,6 +42,7 @@ app.use((req, res, next) => {
     next();
   }
 });
+//controllers
 app.use(helmet());
 app.use(compression());
 app.get("/getData", expensecomtroller.getAllProducts);
@@ -66,6 +67,7 @@ app.get(
 app.get("/download", download);
 app.get("/alldownload", alldownload);
 
+//Associantions
 User.hasMany(Product);
 Product.belongsTo(User);
 
@@ -86,7 +88,7 @@ sequelize
   })
   .then((user) => {
     // console.log(user);
-    app.listen( process.env.PROT ||3000, () => {
+    app.listen( process.env.PORT ||3000, () => {
       console.log("Server running");
     });
   })

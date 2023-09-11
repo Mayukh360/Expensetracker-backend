@@ -36,7 +36,7 @@ const createProduct = async (req, res) => {
         amount,
         category
       },
-      { transaction: t } // Pass the transaction object to createProduct
+      { transaction: t } 
     );
 
     // Fetch the user associated with the product

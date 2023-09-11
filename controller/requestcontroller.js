@@ -87,16 +87,14 @@ const handleResetPasswordForm = async (req, res) => {
     </html>`);
   } catch (err) {
     console.log(err);
-    res
-      .status(500)
-      .json({ error: "Internal server error while sending form" });
+    res.status(500).json({ error: "Internal server error while sending form" });
   }
 };
 
 const handleUpdatePassword = async (req, res) => {
   const { userId, requestId } = req.params;
   const { newPassword } = req.query;
-  console.log('FINAL', userId, newPassword)
+  console.log("FINAL", userId, newPassword);
 
   try {
     // Find the user by userId (you can also use JWT token to get userId)
@@ -122,7 +120,9 @@ const handleUpdatePassword = async (req, res) => {
     });
 
     if (!request) {
-      return res.status(400).json({ error: "Invalid or expired reset request" });
+      return res
+        .status(400)
+        .json({ error: "Invalid or expired reset request" });
     }
 
     // Update the request's isActive status to false
